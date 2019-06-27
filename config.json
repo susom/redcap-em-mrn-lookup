@@ -1,0 +1,109 @@
+{
+  "name": "MRN LookUp",
+  "namespace": "Stanford\\MrnLookUp",
+  "description": "This is a utility EM which overwrites the Create Record functionality to allow users to enter an MRN, and if valid, will populate basic demographic fields in their project",
+  "authors": [
+    {
+      "name": "Andy Martin",
+      "email": "andy123@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Susan Weber",
+      "email": "scweber@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Lee Ann Yasukawa",
+      "email": "yasukawa@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+
+  "permissions": [
+     "redcap_add_edit_records_page",
+     "redcap_every_page_before_render"
+  ],
+
+  "links": {
+    "control-center": [
+    ],
+    "project": [
+    ]
+  },
+
+  "no-auth-pages": [
+  ],
+
+  "system-settings": [
+    {
+      "key": "enable-system-debug-logging",
+      "name": "<b>Enable Debug Logging</b><br>If you have the Stanford emLogger external module installed and configured, you can enable additional debug-level logging through this checkbox</b>",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "url_to_id_api",
+      "name": "<b>URL to the ID API</b>",
+      "required": true,
+      "type": "text"
+    }
+  ],
+
+  "project-settings": [
+    {
+      "key": "enable-project-debug-logging",
+      "name": "<b>Enable Debug Logging</b>",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "mrn",
+      "name": "<b>MRN field</b><br>Select the field where the MRN will be stored after verification",
+      "required": true,
+      "type": "field-list"
+    },
+    {
+      "key": "first_name",
+      "name": "<b>First Name</b><br>Select the field where the first name will be stored after the MRN is verified. If left blank, first name will not be saved.  The field should be a text field with no validation",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "last_name",
+      "name": "<b>Last Name</b><br>Select the field where the last name will be stored after the MRN is verified. If left blank, last name will not be saved. The field should be a text field with no validation",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "dob",
+      "name": "<b>Date of Birth</b><br>Select the field where the date of birth will be stored after the MRN is verified. If left blank, birth date will not be saved. The field should be a text field with date validation of 'Y-M-D",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "gender",
+      "name": "<b>Gender</b><br>Select the field where gender will be stored after the MRN is verified. If left blank, gender will not be saved. The field should be a text field with no validation",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "ethnicity",
+      "name": "<b>Ethnicity</b><br>Select the field where ethnicity will be stored after the MRN is verified. If left blank, ethnicity will not be saved. The field should be a text field with no validation",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "race",
+      "name": "<b>Race</b><br>Select the field where race will be stored after the MRN is verified. If left blank, race will not be saved. The field should be a text field with no validation",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "record_name",
+      "name": "<b>Record Name Prefix</b><br>The prefix which will be used to name the record. If supplied, the record ID will be created with this prefix and the next number appended to it.  For instance, if 'Study' is given as a prefix, the record numbers will be named 'Study1', 'Study2', etc",
+      "required": false,
+      "type": "text"
+    }
+  ]
+}

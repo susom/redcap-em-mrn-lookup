@@ -1,0 +1,166 @@
+<?php
+namespace Stanford\MrnLookUp;
+
+require_once "emLoggerTrait.php";
+
+
+class MrnLookUp extends \ExternalModules\AbstractExternalModule
+{
+    use emLoggerTrait;
+
+    // -- Hook functions
+    /**
+     * Add/Edit Records Page
+     *    Hook to allow the Add new record button to be overwritten with an Add a new MRN button
+     *
+     * @param $project_id
+     * @param $instrument
+     * @param $event_id
+     */
+    function redcap_add_edit_records_page($project_id, $instrument, $event_id) {
+
+        // Override the 'Add new record' button with the 'Add a new MRN' button
+        $this->overrideNewRecordButton("AddRecord");
+    }
+
+    /**
+     *  Record Status Dashboard Page
+     *     Hook to allow the Add new record button to be overwritten with an Add a new MRN button
+     */
+    function redcap_every_page_before_render($project_id) {
+
+        if (PAGE === 'DataEntry/record_status_dashboard.php') {
+            // Override the 'Add new record' button with the 'Add a new MRN' button
+            $this->overrideNewRecordButton("Dashboard");
+        }
+    }
+
+
+    // -- Functions used to replace the Add new record button
+
+    /**
+     *  This function is called from the Dashboard and the Add/Edit Record pages.  These pages have the Add New Record button
+     *  which we are overriding. I didn't find any other page with the Add New Record button.
+     */
+    function overrideNewRecordButton($page) {
+
+        // Find the URL to the MRN Verifier
+        $url = $this->getUrl("VerifyMRNandCreateRecord.php");
+
+        // Retrieve the html that will create the modal and overwrite the Add new record button
+        $modal = $this->createHTMLModal();
+
+        ?>
+
+        <!-- Look for the 'Add new record' button and override it with the 'Add a new MRN' button -->
+        <script type="text/javascript">
+
+            window.setTimeout(function() {
+
+                var page = '<?php echo $page; ?>';
+                var buttonElement;
+
+                // Find the 'Add new record' button on the page that we are on. The Dashboard has the button within a <div>
+                // and the Add/Edit Records page has the button with a <td>
+                if ( page === 'Dashboard') {
+                    buttonElement = document.querySelectorAll("div > button");
+                } else if ( page === "AddRecord") {
+                    buttonElement = document.querySelectorAll("td > button");
+                }
+
+                for (var ncnt=0; ncnt < buttonElement.length; ncnt++) {
+                    var button = buttonElement[ncnt];
+                    if (button.innerHTML.includes('Add new record')) {
+                        var parent = button.parentNode;
+                        parent.innerHTML = '<?php echo $modal; ?>';
+                    }
+                }
+
+            }, 100);
+
+            /**
+             * This function is javascript which is called when the 'Verify MRN' button on the modal is selected.
+             * A post is made to VerifyMRNandCreateRecord.php.
+             */
+            function verifyMRN() {
+
+                var url = '<?php echo $url; ?>';
+                var newMRN = document.getElementById('newMRN').value;
+                if (newMRN.length !== 8) {
+                    document.getElementById('messages').innerHTML = "* MRN must be exactly 8 numbers";
+                    return;
+                } else if (isNaN(newMRN)) {
+                    document.getElementById('messages').innerHTML = "* MRN can only be numbers";
+                    return;
+                } else {
+                    document.getElementById('messages').innerHTML = "";
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: {"mrn": newMRN},
+                    success: function(data, textStatus, jqXHR) {
+
+                        var data_array = JSON.parse(data);
+
+                        if (data_array.status === 1) {
+                            $('#mrnmodal').modal('hide');
+                        } else {
+                            document.getElementById('messages').innerHTML = data_array.message;
+                        }
+                    },
+                    error: function(hqXHR, textStatus, errorThrown) {
+                    }
+                });
+
+            }
+
+        </script>
+
+        <?php
+
+    }
+
+    /**
+     * HTML to create new button and create modal so user can input an MRN
+     *
+     * @return string - html to overwrite the Add new record button with the Add a new MRN button and creates a modal to input the MRN
+     */
+    function createHTMLModal() {
+
+        // Substitute the Add a new record button with a button that will open the modal
+        $modal  = '<button class="btn btn-xs btn-rcgreen fs13" data-toggle="modal" data-target="#mrnmodal">';
+        $modal .= '    <i class="fas fa-plus"></i> Add a new MRN';
+        $modal .= '</button>';
+
+        // Make a modal so users can enter a new MRN
+        $modal .= '<div id="mrnmodal" class="modal" tabindex="-1" role="dialog">';
+        $modal .= '    <div class="modal-dialog" role="document">';
+        $modal .= '        <div class="modal-content">';
+        $modal .= '            <div class="modal-header" style="background-color:maroon;color:white">';
+        $modal .= '                <h5 class="modal-title">Enter a MRN</h5>';
+        $modal .= '                <button type="button" class="close" data-dismiss="modal" aria-label="Close">';
+        $modal .= '                    <span style="color:white;" aria-hidden="true">&times;</span>';
+        $modal .= '                </button>';
+        $modal .= '            </div>';    // modal header
+        $modal .= '            <div class="modal-body text-left">';
+        $modal .= '                <div style="margin:20px 0 0 0;font-weight:bold;" > ';
+        $modal .= '                     Enter an 8 character MRN (no dashes): ';
+        $modal .= '                    <input id="newMRN">';
+        $modal .= '                     <br><span style="font-weight:normal;">(ex: 12345678 or 01234567)</span>';
+        $modal .= '                </div>';
+        $modal .= '                <div id="messages" style="margin-top:10px; color:red;"></div>';
+        $modal .= '                <div style="margin-top:40px;text-align:right">';
+        $modal .= '                    <input type="button" data-dismiss="modal" value="Close">';
+        $modal .= '                    <input type="submit" onclick="verifyMRN()" value="Verify MRN">';
+        $modal .= '                </div>';
+        $modal .= '            </div>';     // Modal body
+        $modal .= '        </div>';         // Modal content
+        $modal .= '     </div>';            // Mmdal dialog
+        $modal .= '</div>';                 // modal
+
+        return $modal;
+    }
+
+}
