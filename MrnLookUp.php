@@ -104,8 +104,10 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
 
                         var data_array = JSON.parse(data);
 
+                        // Status of 1
                         if (data_array.status === 1) {
-                            $('#mrnmodal').modal('hide');
+                            document.getElementById('newMRN').value = '';
+                            window.open(data_array.url, '_self');
                         } else {
                             document.getElementById('messages').innerHTML = data_array.message;
                         }
@@ -139,7 +141,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '    <div class="modal-dialog" role="document">';
         $modal .= '        <div class="modal-content">';
         $modal .= '            <div class="modal-header" style="background-color:maroon;color:white">';
-        $modal .= '                <h5 class="modal-title">Enter a MRN</h5>';
+        $modal .= '                <h5 class="modal-title">MRN of the person you are trying to find</h5>';
         $modal .= '                <button type="button" class="close" data-dismiss="modal" aria-label="Close">';
         $modal .= '                    <span style="color:white;" aria-hidden="true">&times;</span>';
         $modal .= '                </button>';

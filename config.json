@@ -100,8 +100,14 @@
       "type": "field-list"
     },
     {
-      "key": "record_name",
+      "key": "record_name_prefix",
       "name": "<b>Record Name Prefix</b><br>The prefix which will be used to name the record. If supplied, the record ID will be created with this prefix and the next number appended to it.  For instance, if 'Study' is given as a prefix, the record numbers will be named 'Study1', 'Study2', etc",
+      "required": false,
+      "type": "text"
+    },
+    {
+      "key": "number_pad_size",
+      "name": "<b>Number Padding Size</b><br>The record label will consist of the Record Name Prefix and an increasing number.  This field will specify if the increasing number should be left-padded with 0's so the record label will always be a consistent length.  If this number is 5, the first record label will be 'Record Name Prefix' + '00001'",
       "required": false,
       "type": "text"
     }
