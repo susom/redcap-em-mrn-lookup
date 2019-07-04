@@ -78,9 +78,11 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
 
             }, 100);
 
+
             /**
-             * This function is javascript which is called when the 'Verify MRN' button on the modal is selected.
-             * A post is made to VerifyMRNandCreateRecord.php.
+             * This function is called when the 'Verify MRN' button on the modal is selected.
+             * A post is made to VerifyMRNandCreateRecord.php to see if the MRN is valid and a record has not
+             * been created yet.
              */
             function verifyMRN() {
 
@@ -99,23 +101,75 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                 $.ajax({
                     type: "POST",
                     url: url,
-                    data: {"mrn": newMRN},
+                    data: {"mrn"        : newMRN,
+                           "action"     : "verify"},
                     success: function(data, textStatus, jqXHR) {
 
                         var data_array = JSON.parse(data);
 
-                        // Status of 1
-                        if (data_array.status === 1) {
+                        // Check return status to see what we should do.
+                        // Status = 0 - Found some type of error
+                        // Status = 1 - MRN already in project - go to that record
+                        // Status = 2 - Found MRN, display demographics
+                        if (data_array.status === 0) {
+                            document.getElementById('messages').innerHTML = data_array.message;
+                        } else if (data_array.status === 1) {
                             document.getElementById('newMRN').value = '';
                             window.open(data_array.url, '_self');
-                        } else {
+                        } else if (data_array.status === 2) {
                             document.getElementById('messages').innerHTML = data_array.message;
+                            document.getElementById('demographics').innerHTML = data_array.demographics;
                         }
                     },
                     error: function(hqXHR, textStatus, errorThrown) {
                     }
                 });
 
+            }
+
+            /**
+             * This function is called when the 'Save MRN' button on the modal is selected.
+             * A post is made to VerifyMRNandCreateRecord.php to save a new record with this MRN.
+             */
+            function saveMRN() {
+
+                var url = '<?php echo $url; ?>';
+                var newMRN = document.getElementById('newMRN').value;
+                var demographics = document.getElementById('demographics').innerHTML;
+
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: {"mrn"            : newMRN,
+                           "demographics"   : demographics,
+                           "action"         : "save"},
+                    success: function(data, textStatus, jqXHR) {
+
+                        var data_array = JSON.parse(data);
+
+                        // Check return status to see what we should do.
+                        // Status = 0 - Found some type of error
+                        // Status = 1 - MRN record was created - go to that record
+                        if (data_array.status === 0) {
+                            document.getElementById('messages').innerHTML = data_array.message;
+                        } else if (data_array.status === 1) {
+                            document.getElementById('newMRN').value = '';
+                            window.open(data_array.url, '_self');
+                       }
+                    },
+                    error: function(hqXHR, textStatus, errorThrown) {
+                    }
+                });
+            }
+
+            /**
+             * Clear the modal fields and close it.
+             */
+            function closeModal() {
+                document.getElementById('newMRN').value = '';
+                document.getElementById('messages').innerHTML = '';
+                document.getElementById('demographics').innerHTML = '';
+                $('#mrnmodal').modal("hide");
             }
 
         </script>
@@ -147,6 +201,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '                </button>';
         $modal .= '            </div>';    // modal header
         $modal .= '            <div class="modal-body text-left">';
+        $modal .= '                <div id="demographics" style="display:none"></div>';
         $modal .= '                <div style="margin:20px 0 0 0;font-weight:bold;" > ';
         $modal .= '                     Enter an 8 character MRN (no dashes): ';
         $modal .= '                    <input id="newMRN">';
@@ -154,8 +209,9 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '                </div>';
         $modal .= '                <div id="messages" style="margin-top:10px; color:red;"></div>';
         $modal .= '                <div style="margin-top:40px;text-align:right">';
-        $modal .= '                    <input type="button" data-dismiss="modal" value="Close">';
+        $modal .= '                    <input type="button" onclick="closeModal()" value="Cancel">';
         $modal .= '                    <input type="submit" onclick="verifyMRN()" value="Verify MRN">';
+        $modal .= '                    <input type="button" onclick="saveMRN()" value="Save">';
         $modal .= '                </div>';
         $modal .= '            </div>';     // Modal body
         $modal .= '        </div>';         // Modal content
