@@ -119,6 +119,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                         } else if (data_array.status === 2) {
                             document.getElementById('messages').innerHTML = data_array.message;
                             document.getElementById('demographics').innerHTML = data_array.demographics;
+                            document.getElementById('savebuttonid').style.display = 'inline';
                         }
                     },
                     error: function(hqXHR, textStatus, errorThrown) {
@@ -169,6 +170,8 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                 document.getElementById('newMRN').value = '';
                 document.getElementById('messages').innerHTML = '';
                 document.getElementById('demographics').innerHTML = '';
+                document.getElementById('savebuttonid').style.display = 'none';
+
                 $('#mrnmodal').modal("hide");
             }
 
@@ -204,14 +207,16 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '                <div id="demographics" style="display:none"></div>';
         $modal .= '                <div style="margin:20px 0 0 0;font-weight:bold;" > ';
         $modal .= '                     Enter an 8 character MRN (no dashes): ';
-        $modal .= '                    <input id="newMRN">';
-        $modal .= '                     <br><span style="font-weight:normal;">(ex: 12345678 or 01234567)</span>';
+        $modal .= '                    <input id="newMRN" size="10px">';
+        $modal .= '                     <input style="left-margin:10px" type="submit" onclick="verifyMRN()" value="Verify MRN">';
+        $modal .= '                </div>';
+        $modal .= '                <div>';
+        $modal .= '                     <span style="font-weight:normal;">(ex: 12345678 or 01234567)</span>';
         $modal .= '                </div>';
         $modal .= '                <div id="messages" style="margin-top:10px; color:red;"></div>';
-        $modal .= '                <div style="margin-top:40px;text-align:right">';
+        $modal .= '                <div style="margin-top:40px; text-align:right;">';
+        $modal .= '                    <input type="button" id="savebuttonid" style="display:none; margin-right:10px" onclick="saveMRN()" value="Save">';
         $modal .= '                    <input type="button" onclick="closeModal()" value="Cancel">';
-        $modal .= '                    <input type="submit" onclick="verifyMRN()" value="Verify MRN">';
-        $modal .= '                    <input type="button" onclick="saveMRN()" value="Save">';
         $modal .= '                </div>';
         $modal .= '            </div>';     // Modal body
         $modal .= '        </div>';         // Modal content
