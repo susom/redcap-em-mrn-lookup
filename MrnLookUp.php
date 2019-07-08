@@ -55,28 +55,27 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         <!-- Look for the 'Add new record' button and override it with the 'Add a new MRN' button -->
         <script type="text/javascript">
 
-            window.setTimeout(function() {
 
+            window.onload = function() {
                 var page = '<?php echo $page; ?>';
                 var buttonElement;
 
                 // Find the 'Add new record' button on the page that we are on. The Dashboard has the button within a <div>
                 // and the Add/Edit Records page has the button with a <td>
-                if ( page === 'Dashboard') {
+                if (page === 'Dashboard') {
                     buttonElement = document.querySelectorAll("div > button");
-                } else if ( page === "AddRecord") {
+                } else if (page === "AddRecord") {
                     buttonElement = document.querySelectorAll("td > button");
                 }
 
-                for (var ncnt=0; ncnt < buttonElement.length; ncnt++) {
+                for (var ncnt = 0; ncnt < buttonElement.length; ncnt++) {
                     var button = buttonElement[ncnt];
                     if (button.innerHTML.includes('Add new record')) {
                         var parent = button.parentNode;
                         parent.innerHTML = '<?php echo $modal; ?>';
                     }
                 }
-
-            }, 100);
+            };
 
 
             /**
@@ -87,11 +86,15 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
             function verifyMRN() {
 
                 var url = '<?php echo $url; ?>';
+                document.getElementById('savebuttonid').style.display = 'none';
+
                 var newMRN = document.getElementById('newMRN').value;
                 if (newMRN.length !== 8) {
+                    document.getElementById('messages').style.color = 'red';
                     document.getElementById('messages').innerHTML = "* MRN must be exactly 8 numbers";
                     return;
                 } else if (isNaN(newMRN)) {
+                    document.getElementById('messages').style.color = 'red';
                     document.getElementById('messages').innerHTML = "* MRN can only be numbers";
                     return;
                 } else {
@@ -112,11 +115,13 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                         // Status = 1 - MRN already in project - go to that record
                         // Status = 2 - Found MRN, display demographics
                         if (data_array.status === 0) {
+                            document.getElementById('messages').style.color = 'red';
                             document.getElementById('messages').innerHTML = data_array.message;
                         } else if (data_array.status === 1) {
                             document.getElementById('newMRN').value = '';
                             window.open(data_array.url, '_self');
                         } else if (data_array.status === 2) {
+                            document.getElementById('messages').style.color = 'black';
                             document.getElementById('messages').innerHTML = data_array.message;
                             document.getElementById('demographics').innerHTML = data_array.demographics;
                             document.getElementById('savebuttonid').style.display = 'inline';
@@ -152,6 +157,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                         // Status = 0 - Found some type of error
                         // Status = 1 - MRN record was created - go to that record
                         if (data_array.status === 0) {
+                            document.getElementById('messages').style.color = 'red';
                             document.getElementById('messages').innerHTML = data_array.message;
                         } else if (data_array.status === 1) {
                             document.getElementById('newMRN').value = '';
@@ -213,7 +219,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '                <div>';
         $modal .= '                     <span style="font-weight:normal;">(ex: 12345678 or 01234567)</span>';
         $modal .= '                </div>';
-        $modal .= '                <div id="messages" style="margin-top:10px; color:red;"></div>';
+        $modal .= '                <div id="messages" style="margin-top:10px;"></div>';
         $modal .= '                <div style="margin-top:40px; text-align:right;">';
         $modal .= '                    <input type="button" id="savebuttonid" style="display:none; margin-right:10px" onclick="saveMRN()" value="Save">';
         $modal .= '                    <input type="button" onclick="closeModal()" value="Cancel">';
