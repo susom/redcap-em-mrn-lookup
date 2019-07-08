@@ -67,8 +67,15 @@ if ($action === "verify") {
 
         // Call the API to verify the MRN and retrieve data if valid
         $result = http_post($api_url, $body, $timeout, $content_type, $basic_auth_user, $headers);
-        $returnData = json_decode($result, true);
-        $personInfo = $returnData["result"][0];
+        if (is_null($result)) {
+            $module->emError("Problem with API call to $api_url for project $pid");
+            print json_encode(array("status" => 0,
+                "message" => "* Could not verify MRN. Please contact REDCap team for help"));
+            return;
+        } else {
+            $returnData = json_decode($result, true);
+            $personInfo = $returnData["result"][0];
+        }
     }
 
     // If the response is empty, this MRN is invalid
