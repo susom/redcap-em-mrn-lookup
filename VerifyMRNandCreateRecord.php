@@ -43,6 +43,39 @@ if ($action === "verify") {
         return;
     }
 
+    // Before checking the ID API, make sure the IRB is valid and the privacy attestation allows them to
+    // see MRN, names and Dob
+    $irb_number = findIRBNumber($pid);
+    if (is_null($irb_number)) {
+        $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
+        $module->emError($msg);
+        print json_encode(array("status" => 0,
+            "message" => $msg));
+        return;
+    }
+
+    $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+    $settings = $IRBL->getPrivacySettings($irb_number, $pid);
+    if ($settings == false || !$settings['status']) {
+        $module->emError("IRB/Privacy status is valid: " . $settings['message']);
+        print json_encode(array("status" => 0,
+                                "message" => $settings['message']));
+        return;
+    } else {
+        $privacy_settings = $settings['privacy'];
+        $needed_privacy = $privacy_settings['approved'] &&
+                            $privacy_settings['demographic']['phi_approved']['fullname'] &&
+                            $privacy_settings['demographic']['phi_approved']['mrn'] &&
+                            $privacy_settings['demographic']['phi_approved']['dates'];
+        if (!$needed_privacy) {
+            $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are MRN, names and dates.";
+            $module->emError($msg);
+            print json_encode(array("status" => 0,
+                                    "message" => $msg));
+            return;
+        }
+    }
+
     // Get a valid API token from the vertx token manager
     $service = "id";
     $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
@@ -209,4 +242,17 @@ function findNextRecordNumber($record_prefix, $number_padding_size, $recordField
     $newRecordLabel = $record_prefix . $numeric_part;
 
     return $newRecordLabel;
+}
+
+function findIRBNumber($pid) {
+    // Find the IRB number for this project
+    // Check to make sure pid is an int
+    $query = "select project_irb_number from redcap_projects where project_id = " . intval($pid);
+    $q = db_query($query);
+    $results = db_fetch_row($q);
+    if (is_null($results) or empty($results)) {
+        return null;
+    } else {
+        return $results[0];
+    }
 }

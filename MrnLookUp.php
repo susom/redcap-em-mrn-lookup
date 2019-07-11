@@ -50,6 +50,8 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         // Retrieve the html that will create the modal and overwrite the Add new record button
         $modal = $this->createHTMLModal();
 
+        $this->emLog("This is the URL: " . $url);
+
         ?>
 
         <!-- Look for the 'Add new record' button and override it with the 'Add a new MRN' button -->
