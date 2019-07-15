@@ -43,9 +43,9 @@ if ($action === "verify") {
         return;
     }
 
-    // Before checking the ID API, make sure the IRB is valid and the privacy attestation allows them to
-    // see MRN, names and Dob
-    $irb_number = findIRBNumber($pid);
+    // Retrieve the IRB Number entered into the project setup page.
+    $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+    $irb_number = $IRBL->findIRBNumber($pid);
     if (is_null($irb_number)) {
         $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
         $module->emError($msg);
@@ -54,7 +54,8 @@ if ($action === "verify") {
         return;
     }
 
-    $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+    // Before checking the ID API, make sure the IRB is valid and the privacy attestation allows them to
+    // see MRN, names and Dob
     $settings = $IRBL->getPrivacySettings($irb_number, $pid);
     if ($settings == false || !$settings['status']) {
         $module->emError("IRB/Privacy status is valid: " . $settings['message']);
@@ -242,17 +243,4 @@ function findNextRecordNumber($record_prefix, $number_padding_size, $recordField
     $newRecordLabel = $record_prefix . $numeric_part;
 
     return $newRecordLabel;
-}
-
-function findIRBNumber($pid) {
-    // Find the IRB number for this project
-    // Check to make sure pid is an int
-    $query = "select project_irb_number from redcap_projects where project_id = " . intval($pid);
-    $q = db_query($query);
-    $results = db_fetch_row($q);
-    if (is_null($results) or empty($results)) {
-        return null;
-    } else {
-        return $results[0];
-    }
 }
