@@ -46,11 +46,12 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
 
         // Find the URL to the MRN Verifier
         $url = $this->getUrl("VerifyMRNandCreateRecord.php");
+        $this->emDebug("This is the URL: " . $url);
+        $allow_blank_mrn = $this->getProjectSetting('allow_blank_mrns');
+        $this->emDebug("Allow Blank MRNS: " . $allow_blank_mrn);
 
         // Retrieve the html that will create the modal and overwrite the Add new record button
         $modal = $this->createHTMLModal();
-
-        $this->emLog("This is the URL: " . $url);
 
         ?>
 
@@ -88,10 +89,16 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
             function verifyMRN() {
 
                 var url = '<?php echo $url; ?>';
-                document.getElementById('savebuttonid').style.display = 'none';
+                var allow_blank_mrns = '<?php echo $allow_blank_mrn; ?>';
 
+                document.getElementById('savebuttonid').style.display = 'none';
                 var newMRN = document.getElementById('newMRN').value;
-                if (newMRN.length !== 8) {
+
+                if ((allow_blank_mrns === '1') && (newMRN.length === 0)) {
+                    document.getElementById('messages').style.color = 'red';
+                    document.getElementById('messages').innerHTML = '* Select Save to create a new record with a blank MRN';
+                    document.getElementById('savebuttonid').style.display = 'inline';
+                } else if (newMRN.length !== 8) {
                     document.getElementById('messages').style.color = 'red';
                     document.getElementById('messages').innerHTML = "* MRN must be exactly 8 numbers";
                     return;
@@ -101,38 +108,42 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                     return;
                 } else {
                     document.getElementById('messages').innerHTML = "";
-                }
 
-                $.ajax({
-                    type: "POST",
-                    url: url,
-                    data: {"mrn"        : newMRN,
-                           "action"     : "verify"},
-                    success: function(data, textStatus, jqXHR) {
+                    $.ajax({
+                        type: "POST",
+                        url: url,
+                        data: {"mrn"        : newMRN,
+                            "action"     : "verify"},
+                        success: function(data, textStatus, jqXHR) {
 
-                        var data_array = JSON.parse(data);
+                            var data_array = JSON.parse(data);
 
-                        // Check return status to see what we should do.
-                        // Status = 0 - Found some type of error
-                        // Status = 1 - MRN already in project - go to that record
-                        // Status = 2 - Found MRN, display demographics
-                        if (data_array.status === 0) {
-                            document.getElementById('messages').style.color = 'red';
-                            document.getElementById('messages').innerHTML = data_array.message;
-                        } else if (data_array.status === 1) {
-                            document.getElementById('newMRN').value = '';
-                            window.open(data_array.url, '_self');
-                        } else if (data_array.status === 2) {
-                            document.getElementById('messages').style.color = 'black';
-                            document.getElementById('messages').innerHTML = data_array.message;
-                            document.getElementById('demographics').innerHTML = data_array.demographics;
-                            document.getElementById('savebuttonid').style.display = 'inline';
+                            // Check return status to see what we should do.
+                            // Status = 0 - Found some type of error
+                            // Status = 1 - MRN already in project - go to that record
+                            // Status = 2 - Found MRN, display demographics
+                            // Status = 3 - MRN not found but ask if they want to create a record anyways
+                            if (data_array.status === 0) {
+                                document.getElementById('messages').style.color = 'red';
+                                document.getElementById('messages').innerHTML = data_array.message;
+                            } else if (data_array.status === 1) {
+                                document.getElementById('newMRN').value = '';
+                                window.open(data_array.url, '_self');
+                            } else if (data_array.status === 2) {
+                                document.getElementById('messages').style.color = 'black';
+                                document.getElementById('messages').innerHTML = data_array.message;
+                                document.getElementById('demographics').innerHTML = data_array.demographics;
+                                document.getElementById('savebuttonid').style.display = 'inline';
+                            } else if (data_array.status === 3) {
+                                document.getElementById('messages').style.color = 'red';
+                                document.getElementById('messages').innerHTML = data_array.message;
+                                document.getElementById('savebuttonid').style.display = 'inline';
+                            }
+                        },
+                        error: function(hqXHR, textStatus, errorThrown) {
                         }
-                    },
-                    error: function(hqXHR, textStatus, errorThrown) {
-                    }
-                });
-
+                    });
+                }
             }
 
             /**

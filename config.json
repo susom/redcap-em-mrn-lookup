@@ -110,6 +110,17 @@
       "name": "<b>Number Padding Size</b><br>The record label will consist of the Record Name Prefix and an increasing number.  This field will specify if the increasing number should be left-padded with 0's so the record label will always be a consistent length.  If this number is 5, the first record label will be 'Record Name Prefix' + '00001'",
       "required": false,
       "type": "text"
+    },
+    {
+      "key": "query_for_nonvalid_mrns",
+      "name": "<b>Query for Non-Valid MRNs</b><br>When this checkbox is selected, users will be asked if they want to create a record when the input MRN is not found. When not selected and an MRN is not found, the user will receive an error message without an option to create a record.",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "allow_blank_mrns",
+      "name": "<b>Allow blank MRNs</b><br>When this checkbox is selected, users will be asked if they want to create a record when the input MRN is blank. When not selected and the MRN is blank, the user will receive an error message without an option to create a record.",
+      "type": "checkbox"
     }
   ]
 }

@@ -3,6 +3,7 @@ namespace Stanford\MrnLookUp;
 /** @var \Stanford\MrnLookUp\MrnLookUp $module **/
 
 use REDCap;
+use Exception;
 
 $pid = isset($_GET['pid']) && !empty($_GET['pid']) ? $_GET['pid'] : null;
 $mrn = isset($_POST['mrn']) && !empty($_POST['mrn']) ? $_POST['mrn'] : null;
@@ -20,6 +21,8 @@ if ($action === "verify") {
 
     // Retrieve locations on where to store the data
     $projSettings = $module->getProjectSettings();
+
+    // Check for blank MRN and see whether or not the config specifies we should create a new record
 
     // First check to see if there is already a record created with this MRN
     $filter = "[" . $projSettings["mrn"]["value"] . "]= '" . $mrn . "'";
@@ -43,8 +46,18 @@ if ($action === "verify") {
         return;
     }
 
+    // Instantiate the IRB Lookup module
+    try {
+        $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+    } catch (Exception $ex) {
+        $msg = "The IRB Lookup module is not enabled, please contact REDCap support.";
+        $module->emError($msg);
+        print json_encode(array("status" => 0,
+            "message" => $msg));
+        return;
+    }
+
     // Retrieve the IRB Number entered into the project setup page.
-    $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
     $irb_number = $IRBL->findIRBNumber($pid);
     if (is_null($irb_number)) {
         $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
@@ -77,11 +90,19 @@ if ($action === "verify") {
         }
     }
 
-    // Get a valid API token from the vertx token manager
+    // Instantiate the vertx token manager so we can retrieve a token
     $service = "id";
-    $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
-    $token = $VTM->findValidToken($service);
+    try {
+        $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+    } catch (Exception $ex) {
+        $msg = "The Vertx Token Manager module is not enabled, please contact REDCap support.";
+        $module->emError($msg);
+        print json_encode(array("status" => 0,
+                            "message" => $msg));
+    }
 
+    // Get a valid API token from the vertx token manager
+    $token = $VTM->findValidToken($service);
     if ($token == false) {
         $module->emError("Could not retrieve valid access token for service $service");
         print json_encode(array("status" => 0,
@@ -104,7 +125,7 @@ if ($action === "verify") {
         if (is_null($result)) {
             $module->emError("Problem with API call to $api_url for project $pid");
             print json_encode(array("status" => 0,
-                "message" => "* Could not verify MRN. Please contact REDCap team for help"));
+                                "message" => "* Could not verify MRN. Please contact REDCap team for help"));
             return;
         } else {
             $returnData = json_decode($result, true);
@@ -114,9 +135,22 @@ if ($action === "verify") {
 
     // If the response is empty, this MRN is invalid
     if (empty($personInfo)) {
-        $module->emDebug("For user $user, mrn $mrn is invalid for project $pid");
-        print json_encode(array("status" => 0,
-            "message" => "* MRN is invalid"));
+
+        // See if the user wants to be asked to create a record anyway
+        $query_for_new_record = $module->getProjectSetting("query_for_nonvalid_mrns");
+        if ($query_for_new_record) {
+            $message = " The MRN number " . $mrn . " is invalid <br><br>" .
+                "If you would like to create a new record anyway, select the 'Save' button.<br>" .
+                "To cancel, select the 'Cancel' button";
+            print json_encode(array("status" => 3,
+                "message" => $message));
+            $module->emDebug("For user $user, mrn $mrn is invalid for project $pid. User will be asked to create record anyways.");
+        } else {
+            $message = "* MRN is invalid";
+            $module->emDebug("For user $user, mrn $mrn is invalid for project $pid");
+            print json_encode(array("status" => 0,
+                "message" => $message));
+        }
         return;
     } else {
 
@@ -129,7 +163,7 @@ if ($action === "verify") {
                    "If this is the correct person and you would like to create a new record,<br>" .
                    "select the 'Save' button. To cancel, select the 'Cancel' button";
 
-        $module->emLog("Person Info: " . json_encode($personInfo));
+        $module->emDebug("Person Info: " . json_encode($personInfo));
         print json_encode(array(
             "status"            => 2,
             "message"           => $message,
@@ -202,7 +236,6 @@ if ($action === "verify") {
         print json_encode(array("status"    => 1,
                                 "url"       =>  $record_home));
     }
-
 }
 
 return;
