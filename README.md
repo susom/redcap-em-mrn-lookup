@@ -16,7 +16,9 @@ The MRN will be verified using the Identifier API call to STARR.  Once verified,
 The approved privacy attestation must include any of these fields which are selected from the EM Config file.
 
 # Configuration File
-The user can specify which fields they want stored in their project in the config file.  
+The user can specify which fields they want stored in their project in the config file.  The fullname of
+the person who MRN was entered will be displayed so the privacy report must be approved for full name.
+All other fields are optional.
 If the project attestation is not approved for a specified field, it will not be stored in the project
 
 A record label prefix can be specified in the configuration file.  

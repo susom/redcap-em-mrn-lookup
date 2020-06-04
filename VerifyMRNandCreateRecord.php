@@ -59,6 +59,7 @@ if ($action === "verify") {
 
     // Retrieve the IRB Number entered into the project setup page.
     $irb_number = $IRBL->findIRBNumber($pid);
+    $module->emDebug("This is the irb number $irb_number");
     if (is_null($irb_number)) {
         $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
         $module->emError($msg);
@@ -76,13 +77,24 @@ if ($action === "verify") {
                                 "message" => $settings['message']));
         return;
     } else {
+
+        // Check to see if we are storing the birth date.  If not, don't check for privacy dates
+        $dob_required = (is_null($projSettings['dob']['value']) ? 0 : 1);
         $privacy_settings = $settings['privacy'];
-        $needed_privacy = $privacy_settings['approved'] &&
-                            $privacy_settings['demographic']['phi_approved']['fullname'] &&
-                            $privacy_settings['demographic']['phi_approved']['mrn'] &&
-                            $privacy_settings['demographic']['phi_approved']['dates'];
+        if ($dob_required) {
+            $needed_privacy = $privacy_settings['approved'] &&
+                $privacy_settings['demographic']['phi_approved']['fullname'] &&
+                $privacy_settings['demographic']['phi_approved']['mrn'] &&
+                $privacy_settings['demographic']['phi_approved']['dates'];
+            $priv = 'MRNs, full name and dates.';
+        } else {
+            $needed_privacy = $privacy_settings['approved'] &&
+                $privacy_settings['demographic']['phi_approved']['fullname'] &&
+                $privacy_settings['demographic']['phi_approved']['mrn'];
+            $priv = 'MRNs and full name.';
+        }
         if (!$needed_privacy) {
-            $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are MRN, names and dates.";
+            $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are " . $priv;
             $module->emError($msg);
             print json_encode(array("status" => 0,
                                     "message" => $msg));
@@ -157,9 +169,9 @@ if ($action === "verify") {
         // The MRN is valid. Display the name and DoB so the user can make sure it is the correct person.
         $message = " The person with MRN " . $mrn . " is: <br><br>" .
                    "<ul style='list-style:none'>" .
-                   "<li>Name: &nbsp;" . ucwords(strtolower($personInfo['firstName'])) ." " . ucwords(strtolower($personInfo["lastName"])) . "</li>" .
-                   "<li>DoB:  &nbsp;&nbsp;&nbsp;" . substr($personInfo["birthDate"], 0, 10) . "</li>" .
-                   "</ul>" .
+                   "<li>Name: &nbsp;" . ucwords(strtolower($personInfo['firstName'])) ." " . ucwords(strtolower($personInfo["lastName"])) . "</li>";
+        if ($dob_required) $message .= "<li>DoB:  &nbsp;&nbsp;&nbsp;" . substr($personInfo["birthDate"], 0, 10) . "</li>";
+         $message .= "</ul>" .
                    "If this is the correct person and you would like to create a new record,<br>" .
                    "select the 'Save' button. To cancel, select the 'Cancel' button";
 
@@ -252,9 +264,11 @@ return;
 function findNextRecordNumber($record_prefix, $number_padding_size, $recordFieldName) {
     global $module, $pid;
 
+    $module->emDebug("Record prefix $record_prefix, num padding size $number_padding_size, record Field Name $recordFieldName");
     $filter = "starts_with([" . $recordFieldName . "],'" .$record_prefix . "')";
     $record_field_array = array($recordFieldName);
     $recordIDs = REDCap::getData($pid, 'array', null, $record_field_array, null, null, null, null, null, $filter);
+    $module->emDebug("Record ids: " . json_encode($recordIDs));
 
     // Get the part of the record name after the prefix.  Changing to uppercase in case someone hand enters a record
     // and uses the same prefix with different case.
@@ -266,14 +280,17 @@ function findNextRecordNumber($record_prefix, $number_padding_size, $recordField
         }
     }
 
+    $module->emDebug("Records with same prefix: " . json_encode($record_array_noprefix));
     // Retrieve the max value so we can add one to create the new record label
     $highest_record_number = max($record_array_noprefix);
+    $module->emDebug("Highest record_number: " . $highest_record_number);
     if (!empty($number_padding_size)) {
         $numeric_part = str_pad(($highest_record_number + 1), $number_padding_size, '0', STR_PAD_LEFT);
     } else {
         $numeric_part = ($highest_record_number + 1);
     }
     $newRecordLabel = $record_prefix . $numeric_part;
+    $module->emDebug("New record label: " . $newRecordLabel);
 
     return $newRecordLabel;
 }
