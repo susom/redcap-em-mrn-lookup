@@ -58,7 +58,6 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         <!-- Look for the 'Add new record' button and override it with the 'Add a new MRN' button -->
         <script type="text/javascript">
 
-
             window.onload = function() {
                 var page = '<?php echo $page; ?>';
                 var buttonElement;
@@ -132,7 +131,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                             } else if (data_array.status === 2) {
                                 document.getElementById('messages').style.color = 'black';
                                 document.getElementById('messages').innerHTML = data_array.message;
-                                document.getElementById('demographics').innerHTML = data_array.demographics;
+                                //document.getElementById('demographics').innerHTML = data_array.demographics;
                                 document.getElementById('savebuttonid').style.display = 'inline';
                             } else if (data_array.status === 3) {
                                 document.getElementById('messages').style.color = 'red';
@@ -243,6 +242,117 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '</div>';                 // modal
 
         return $modal;
+    }
+
+
+    function checkIRBAndGetAttestation($pid, $dob_requested=null)
+    {
+        // Instantiate the IRB Lookup module
+        try {
+            $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
+        } catch (Exception $ex) {
+            $msg = "The IRB Lookup module is not enabled, please contact REDCap support.";
+            $this->emError($msg);
+            return (array("status" => 0,
+                "message" => $msg));
+        }
+
+        // Retrieve the IRB Number entered into the project setup page.
+        $irb_number = $IRBL->findIRBNumber($pid);
+        if (is_null($irb_number)) {
+            $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
+            $this->emError($msg);
+            return array("status" => 0,
+                "message" => $msg);
+        }
+
+        // Before checking the ID API, make sure the IRB is valid and the privacy attestation allows them to
+        // see MRN, names and Dob
+        $settings = $IRBL->getPrivacySettings($irb_number, $pid);
+        if ($settings == false || !$settings['status']) {
+            $this->emError("IRB/Privacy status is valid: " . $settings['message']);
+            return array("status" => 0,
+                "message" => $settings['message']);
+        }
+
+        // Check to see if we are storing the birth date.  If not, don't check for privacy dates
+        $dob_required = (is_null($dob_requested) ? 0 : 1);
+        $privacy_settings = $settings['privacy'];
+        if ($dob_required) {
+            $needed_privacy = $privacy_settings['approved'] &&
+                $privacy_settings['demographic']['phi_approved']['fullname'] &&
+                $privacy_settings['demographic']['phi_approved']['mrn'] &&
+                $privacy_settings['demographic']['phi_approved']['dates'];
+            $priv = 'MRNs, full name and dates.';
+        } else {
+            $needed_privacy = $privacy_settings['approved'] &&
+                $privacy_settings['demographic']['phi_approved']['fullname'] &&
+                $privacy_settings['demographic']['phi_approved']['mrn'];
+            $priv = 'MRNs and full name.';
+        }
+        if (!$needed_privacy) {
+            $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are " . $priv;
+            $this->emError($msg);
+            return array("status" => 0,
+                "message" => $msg);
+        }
+
+        return array("status" => true);
+    }
+
+
+    function retrieveIdToken() {
+
+        try {
+            $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
+        } catch (Exception $ex) {
+            $msg = "The Vertx Token Manager module is not enabled, please contact REDCap support.";
+            $this->emError($msg);
+            return array("status" => 0,
+                "message" => $msg);
+        }
+
+        // Get a valid API token from the vertx token manager
+        $service = "id";
+        $token = $VTM->findValidToken($service);
+        if ($token == false) {
+            $this->emError("Could not retrieve valid access token for service $service");
+            return array("status" => 0,
+                "message" => "* Internal Access problem - please contact the REDCap team");
+        }
+
+        // Retrieve ID URL from the system settings
+        $api_url = $this->getSystemSetting("url_to_id_api");
+
+        return array("status" => 1,
+            "token" => $token,
+            "url" => $api_url);
+
+    }
+
+
+    function apiPost($pid, $mrn, $token, $url) {
+
+        // Use Susan's API to see if this MRN is valid and if so, retrieve name, dob,
+        $body = array("mrns" => array($mrn));
+        $timeout = null;
+        $content_type = 'application/json';
+        $basic_auth_user = null;
+        $headers = array("Authorization: Bearer " . $token);
+
+        // Call the API to verify the MRN and retrieve data if valid
+        $result = http_post($url, $body, $timeout, $content_type, $basic_auth_user, $headers);
+        if (is_null($result)) {
+            $this->emError("Problem with API call to " . $url . " for project $pid");
+            return array("status" => 0,
+                "message" => "* Could not verify MRN. Please contact REDCap team for help");
+        } else {
+            $returnData = json_decode($result, true);
+            $personInfo = $returnData["result"][0];
+        }
+
+        return array("status" => 1,
+            "person" => $personInfo);
     }
 
 }

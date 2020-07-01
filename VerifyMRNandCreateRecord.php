@@ -46,108 +46,30 @@ if ($action === "verify") {
         return;
     }
 
-    // Instantiate the IRB Lookup module
-    try {
-        $IRBL = \ExternalModules\ExternalModules::getModuleInstance('irb_lookup');
-    } catch (Exception $ex) {
-        $msg = "The IRB Lookup module is not enabled, please contact REDCap support.";
-        $module->emError($msg);
-        print json_encode(array("status" => 0,
-            "message" => $msg));
+    // Verify the IRB is valid and retrieve the privacy attestation to make sure we have the correct privileges
+    $return = $module->checkIRBAndGetAttestation($pid, $projSettings['dob']['value']);
+    if (!$return["status"]) {
+        print json_encode($return);
         return;
     }
 
-    // Retrieve the IRB Number entered into the project setup page.
-    $irb_number = $IRBL->findIRBNumber($pid);
-    $module->emDebug("This is the irb number $irb_number");
-    if (is_null($irb_number)) {
-        $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
-        $module->emError($msg);
-        print json_encode(array("status" => 0,
-            "message" => $msg));
+    // Retrieve a token to the ID manager so we can send the MRN validity request check
+    $return = $module->retrieveIdToken();
+    if (!$return["status"]) {
+        print json_encode($return);
         return;
     }
 
-    // Before checking the ID API, make sure the IRB is valid and the privacy attestation allows them to
-    // see MRN, names and Dob
-    $settings = $IRBL->getPrivacySettings($irb_number, $pid);
-    if ($settings == false || !$settings['status']) {
-        $module->emError("IRB/Privacy status is valid: " . $settings['message']);
-        print json_encode(array("status" => 0,
-                                "message" => $settings['message']));
+    // Send the request to verify the MRN
+    $valid_mrn = $module->apiPost($pid, $mrn, $return["token"], $return["url"]);
+    if (!$valid_mrn["status"]) {
+
+        print json_encode($valid_mrn);
         return;
-    } else {
 
-        // Check to see if we are storing the birth date.  If not, don't check for privacy dates
-        $dob_required = (is_null($projSettings['dob']['value']) ? 0 : 1);
-        $privacy_settings = $settings['privacy'];
-        if ($dob_required) {
-            $needed_privacy = $privacy_settings['approved'] &&
-                $privacy_settings['demographic']['phi_approved']['fullname'] &&
-                $privacy_settings['demographic']['phi_approved']['mrn'] &&
-                $privacy_settings['demographic']['phi_approved']['dates'];
-            $priv = 'MRNs, full name and dates.';
-        } else {
-            $needed_privacy = $privacy_settings['approved'] &&
-                $privacy_settings['demographic']['phi_approved']['fullname'] &&
-                $privacy_settings['demographic']['phi_approved']['mrn'];
-            $priv = 'MRNs and full name.';
-        }
-        if (!$needed_privacy) {
-            $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are " . $priv;
-            $module->emError($msg);
-            print json_encode(array("status" => 0,
-                                    "message" => $msg));
-            return;
-        }
-    }
+    } else if (empty($valid_mrn["person"])) {
 
-    // Instantiate the vertx token manager so we can retrieve a token
-    $service = "id";
-    try {
-        $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
-    } catch (Exception $ex) {
-        $msg = "The Vertx Token Manager module is not enabled, please contact REDCap support.";
-        $module->emError($msg);
-        print json_encode(array("status" => 0,
-                            "message" => $msg));
-    }
-
-    // Get a valid API token from the vertx token manager
-    $token = $VTM->findValidToken($service);
-    if ($token == false) {
-        $module->emError("Could not retrieve valid access token for service $service");
-        print json_encode(array("status" => 0,
-            "message" => "* Internal Access problem - please contact the REDCap team"));
-        return;
-    } else {
-
-        // Retrieve ID URL from the system settings
-        $api_url = $module->getSystemSetting("url_to_id_api");
-
-        // Use Susan's API to see if this MRN is valid and if so, retrieve name, dob,
-        $body = array("mrns" => array($mrn));
-        $timeout = null;
-        $content_type = 'application/json';
-        $basic_auth_user = null;
-        $headers = array("Authorization: Bearer " . $token);
-
-        // Call the API to verify the MRN and retrieve data if valid
-        $result = http_post($api_url, $body, $timeout, $content_type, $basic_auth_user, $headers);
-        if (is_null($result)) {
-            $module->emError("Problem with API call to $api_url for project $pid");
-            print json_encode(array("status" => 0,
-                                "message" => "* Could not verify MRN. Please contact REDCap team for help"));
-            return;
-        } else {
-            $returnData = json_decode($result, true);
-            $personInfo = $returnData["result"][0];
-        }
-    }
-
-    // If the response is empty, this MRN is invalid
-    if (empty($personInfo)) {
-
+        // If the response is empty, this MRN is invalid
         // See if the user wants to be asked to create a record anyway
         $query_for_new_record = $module->getProjectSetting("query_for_nonvalid_mrns");
         if ($query_for_new_record) {
@@ -169,17 +91,20 @@ if ($action === "verify") {
         // The MRN is valid. Display the name and DoB so the user can make sure it is the correct person.
         $message = " The person with MRN " . $mrn . " is: <br><br>" .
                    "<ul style='list-style:none'>" .
-                   "<li>Name: &nbsp;" . ucwords(strtolower($personInfo['firstName'])) ." " . ucwords(strtolower($personInfo["lastName"])) . "</li>";
-        if ($dob_required) $message .= "<li>DoB:  &nbsp;&nbsp;&nbsp;" . substr($personInfo["birthDate"], 0, 10) . "</li>";
-         $message .= "</ul>" .
+                   "<li>Name: &nbsp;" . ucwords(strtolower($valid_mrn["person"]['firstName'])) ." " . ucwords(strtolower($valid_mrn["person"]["lastName"])) . "</li>";
+        if ($projSettings['dob']['value']) {
+            $message .= "<li>DoB:  &nbsp;&nbsp;&nbsp;" . substr($valid_mrn["person"]["birthDate"], 0, 10) . "</li>";
+        }
+        $message .= "</ul>" .
                    "If this is the correct person and you would like to create a new record,<br>" .
                    "select the 'Save' button. To cancel, select the 'Cancel' button";
 
-        $module->emDebug("Person Info: " . json_encode($personInfo));
+        $module->emDebug("Person Info: " . json_encode($valid_mrn["person"]));
+        $module->emDebug("Display message: " . $message);
         print json_encode(array(
             "status"            => 2,
             "message"           => $message,
-            "demographics"      => json_encode($personInfo))
+            "demographics"      => json_encode($valid_mrn["person"]))
         );
         return;
     }
@@ -251,6 +176,7 @@ if ($action === "verify") {
 }
 
 return;
+
 
 /**
  * This function will create the next record label based on the inputs from the config file
