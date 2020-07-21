@@ -131,7 +131,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                             } else if (data_array.status === 2) {
                                 document.getElementById('messages').style.color = 'black';
                                 document.getElementById('messages').innerHTML = data_array.message;
-                                //document.getElementById('demographics').innerHTML = data_array.demographics;
+                                document.getElementById('demographics').innerHTML = data_array.demographics;
                                 document.getElementById('savebuttonid').style.display = 'inline';
                             } else if (data_array.status === 3) {
                                 document.getElementById('messages').style.color = 'red';
