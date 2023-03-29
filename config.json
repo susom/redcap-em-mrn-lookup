@@ -20,6 +20,8 @@
     }
   ],
 
+  "framework-version": 10,
+
   "permissions": [
      "redcap_add_edit_records_page",
      "redcap_every_page_before_render"

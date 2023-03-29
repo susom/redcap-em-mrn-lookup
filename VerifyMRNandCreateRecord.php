@@ -25,7 +25,7 @@ if ($action === "verify") {
     // Check for blank MRN and see whether or not the config specifies we should create a new record
 
     // First check to see if there is already a record created with this MRN
-    $filter = "[" . $projSettings["mrn"]["value"] . "]= '" . $mrn . "'";
+    $filter = "[" . $projSettings["mrn"] . "]= '" . $mrn . "'";
     $duplicate = REDCap::getData($pid, 'array', null, array($recordFieldName), null, null, null, null, null, $filter);
     if (!empty($duplicate)) {
 
@@ -130,32 +130,32 @@ if ($action === "verify") {
     //
 
     // Find the next record ID to use for the new record
-    $number_padding_size = $projSettings["number_pad_size"]["value"];
-    $newRecordID = findNextRecordNumber($projSettings["record_name_prefix"]["value"], $number_padding_size, $recordFieldName);
+    $number_padding_size = $projSettings["number_pad_size"];
+    $newRecordID = findNextRecordNumber($projSettings["record_name_prefix"], $number_padding_size, $recordFieldName);
 
     // Save the data that the user asked for. Record ID and MRN are required.
     $newMRNRecord = array();
     $newMRNRecord[$recordFieldName] = $newRecordID;
-    $newMRNRecord[$projSettings["mrn"]["value"]] = $mrn;
+    $newMRNRecord[$projSettings["mrn"]] = $mrn;
 
     // See what data the project will start.  Make first/last name camelcase.
-    if (!empty($projSettings["first_name"]["value"])) {
-        $newMRNRecord[$projSettings["first_name"]["value"]] = ucwords(strtolower($demo['firstName']));
+    if (!empty($projSettings["first_name"])) {
+        $newMRNRecord[$projSettings["first_name"]] = ucwords(strtolower($demo['firstName']));
     }
-    if (!empty($projSettings["last_name"]["value"])) {
-        $newMRNRecord[$projSettings["last_name"]["value"]] = ucwords(strtolower($demo["lastName"]));
+    if (!empty($projSettings["last_name"])) {
+        $newMRNRecord[$projSettings["last_name"]] = ucwords(strtolower($demo["lastName"]));
     }
-    if (!empty($projSettings["dob"]["value"])) {
-        $newMRNRecord[$projSettings["dob"]["value"]] = substr($demo["birthDate"], 0, 10);
+    if (!empty($projSettings["dob"])) {
+        $newMRNRecord[$projSettings["dob"]] = substr($demo["birthDate"], 0, 10);
     }
-    if (!empty($projSettings["gender"]["value"])) {
-        $newMRNRecord[$projSettings["gender"]["value"]] = $demo["gender"];
+    if (!empty($projSettings["gender"])) {
+        $newMRNRecord[$projSettings["gender"]] = $demo["gender"];
     }
-    if (!empty($projSettings["ethnicity"]["value"])) {
-        $newMRNRecord[$projSettings["ethnicity"]["value"]] = $demo["canonicalEthnicity"];
+    if (!empty($projSettings["ethnicity"])) {
+        $newMRNRecord[$projSettings["ethnicity"]] = $demo["canonicalEthnicity"];
     }
-    if (!empty($projSettings["race"]["value"])) {
-        $newMRNRecord[$projSettings["race"]["value"]] = $demo["canonicalRace"];
+    if (!empty($projSettings["race"])) {
+        $newMRNRecord[$projSettings["race"]] = $demo["canonicalRace"];
     }
 
     // Save the new record
@@ -208,7 +208,7 @@ function findNextRecordNumber($record_prefix, $number_padding_size, $recordField
 
     $module->emDebug("Records with same prefix: " . json_encode($record_array_noprefix));
     // Retrieve the max value so we can add one to create the new record label
-    $highest_record_number = max($record_array_noprefix);
+    $highest_record_number = (empty($record_array_noprefix) ? 0 : max($record_array_noprefix));
     $module->emDebug("Highest record_number: " . $highest_record_number);
     if (!empty($number_padding_size)) {
         $numeric_part = str_pad(($highest_record_number + 1), $number_padding_size, '0', STR_PAD_LEFT);

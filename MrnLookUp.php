@@ -3,6 +3,7 @@ namespace Stanford\MrnLookUp;
 
 require_once "emLoggerTrait.php";
 
+use Exception;
 
 class MrnLookUp extends \ExternalModules\AbstractExternalModule
 {
@@ -89,6 +90,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
 
                 var url = '<?php echo $url; ?>';
                 var allow_blank_mrns = '<?php echo $allow_blank_mrn; ?>';
+                var redcap_csrf_token = '<?php echo $this->getCSRFToken(); ?>';
 
                 document.getElementById('savebuttonid').style.display = 'none';
                 var newMRN = document.getElementById('newMRN').value;
@@ -111,11 +113,16 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                     $.ajax({
                         type: "POST",
                         url: url,
-                        data: {"mrn"        : newMRN,
-                            "action"     : "verify"},
+                        data: { "mrn"               : newMRN,
+                                "redcap_csrf_token" : redcap_csrf_token,
+                                "action"            : "verify"
+                        },
                         success: function(data, textStatus, jqXHR) {
 
-                            var data_array = JSON.parse(data);
+                            var data_array;
+                            if (data.length != 0) {
+                                data_array = JSON.parse(data);
+                            }
 
                             // Check return status to see what we should do.
                             // Status = 0 - Found some type of error
@@ -154,13 +161,15 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                 var url = '<?php echo $url; ?>';
                 var newMRN = document.getElementById('newMRN').value;
                 var demographics = document.getElementById('demographics').innerHTML;
+                var redcap_csrf_token = '<?php echo $this->getCSRFToken(); ?>';
 
                 $.ajax({
                     type: "POST",
                     url: url,
-                    data: {"mrn"            : newMRN,
-                           "demographics"   : demographics,
-                           "action"         : "save"},
+                    data: { "mrn"                : newMRN,
+                            "demographics"       : demographics,
+                            "redcap_csrf_token"  : redcap_csrf_token,
+                            "action"             : "save"},
                     success: function(data, textStatus, jqXHR) {
 
                         var data_array = JSON.parse(data);
@@ -207,7 +216,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
     function createHTMLModal() {
 
         // Substitute the Add a new record button with a button that will open the modal
-        $modal  = '<button class="btn btn-xs btn-rcgreen fs13" data-toggle="modal" data-target="#mrnmodal">';
+        $modal  = '<button class="btn btn-xs btn-rcgreen fs13" data-bs-toggle="modal" data-bs-target="#mrnmodal">';
         $modal .= '    <i class="fas fa-plus"></i> Add a new MRN';
         $modal .= '</button>';
 
@@ -217,7 +226,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '        <div class="modal-content">';
         $modal .= '            <div class="modal-header" style="background-color:maroon;color:white">';
         $modal .= '                <h5 class="modal-title">MRN of the person you are trying to find</h5>';
-        $modal .= '                <button type="button" class="close" data-dismiss="modal" aria-label="Close">';
+        $modal .= '                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">';
         $modal .= '                    <span style="color:white;" aria-hidden="true">&times;</span>';
         $modal .= '                </button>';
         $modal .= '            </div>';    // modal header
@@ -300,9 +309,15 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         return array("status" => true);
     }
 
-
+    /**
+     * This function gets a handle to the vertex token manager and requests a valid
+     * token to the Identifiers API
+     *
+     * @return array
+     */
     function retrieveIdToken() {
 
+        // Find the vertex_token_manager to ask for a valid token to the IRB API
         try {
             $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
         } catch (Exception $ex) {
@@ -324,10 +339,11 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         // Retrieve ID URL from the system settings
         $api_url = $this->getSystemSetting("url_to_id_api");
 
-        return array("status" => 1,
-            "token" => $token,
-            "url" => $api_url);
-
+        return array(
+                "status" => 1,
+                "token" => $token,
+                "url" => $api_url
+        );
     }
 
 
@@ -351,8 +367,10 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
             $personInfo = $returnData["result"][0];
         }
 
-        return array("status" => 1,
-            "person" => $personInfo);
+        return array(
+                "status" => 1,
+                "person" => $personInfo
+                    );
     }
 
 }
