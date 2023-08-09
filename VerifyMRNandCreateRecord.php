@@ -47,7 +47,11 @@ if ($action === "verify") {
     }
 
     // Verify the IRB is valid and retrieve the privacy attestation to make sure we have the correct privileges
-    $return = $module->checkIRBAndGetAttestation($pid, $projSettings['dob']['value']);
+    if (empty($projSettings['dob'])) {
+        $return = $module->checkIRBAndGetAttestation($pid, null);
+    } else {
+        $return = $module->checkIRBAndGetAttestation($pid, $projSettings['dob']);
+    }
     if (!$return["status"]) {
         print json_encode($return);
         return;
@@ -63,7 +67,6 @@ if ($action === "verify") {
     // Send the request to verify the MRN
     $valid_mrn = $module->apiPost($pid, $mrn, $return["token"], $return["url"]);
     if (!$valid_mrn["status"]) {
-
         print json_encode($valid_mrn);
         return;
 
@@ -92,15 +95,15 @@ if ($action === "verify") {
         $message = " The person with MRN " . $mrn . " is: <br><br>" .
                    "<ul style='list-style:none'>" .
                    "<li>Name: &nbsp;" . ucwords(strtolower($valid_mrn["person"]['firstName'])) ." " . ucwords(strtolower($valid_mrn["person"]["lastName"])) . "</li>";
-        if ($projSettings['dob']['value']) {
+        if (!empty($projSettings['dob'])) {
             $message .= "<li>DoB:  &nbsp;&nbsp;&nbsp;" . substr($valid_mrn["person"]["birthDate"], 0, 10) . "</li>";
         }
         $message .= "</ul>" .
                    "If this is the correct person and you would like to create a new record,<br>" .
                    "select the 'Save' button. To cancel, select the 'Cancel' button";
 
-        $module->emDebug("Person Info: " . json_encode($valid_mrn["person"]));
-        $module->emDebug("Display message: " . $message);
+        //$module->emDebug("Person Info: " . json_encode($valid_mrn["person"]));
+        //$module->emDebug("Display message: " . $message);
         print json_encode(array(
             "status"            => 2,
             "message"           => $message,
