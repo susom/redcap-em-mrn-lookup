@@ -262,7 +262,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         } catch (Exception $ex) {
             $msg = "The IRB Lookup module is not enabled, please contact REDCap support.";
             $this->emError($msg);
-            return (array("status" => 0,
+            return (array("status" => false,
                 "message" => $msg));
         }
 
@@ -271,7 +271,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         if (is_null($irb_number)) {
             $msg = "The IRB Number is null for this project. Please modify your Project Settings to include the IRB number.";
             $this->emError($msg);
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => $msg);
         }
 
@@ -280,7 +280,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $settings = $IRBL->getPrivacySettings($irb_number, $pid);
         if ($settings == false || !$settings['status']) {
             $this->emError("IRB/Privacy status is valid: " . $settings['message']);
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => $settings['message']);
         }
 
@@ -302,7 +302,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         if (!$needed_privacy) {
             $msg = "This attestation for IRB $irb_number does not have the correct privileges. <br>The necessary priveleges are " . $priv;
             $this->emError($msg);
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => $msg);
         }
 
@@ -323,7 +323,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         } catch (Exception $ex) {
             $msg = "The Vertx Token Manager module is not enabled, please contact REDCap support.";
             $this->emError($msg);
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => $msg);
         }
 
@@ -332,7 +332,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $token = $VTM->findValidToken($service);
         if ($token == false) {
             $this->emError("Could not retrieve valid access token for service $service");
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => "* Internal Access problem - please contact the REDCap team");
         }
 
@@ -340,7 +340,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $api_url = $this->getSystemSetting("url_to_id_api");
 
         return array(
-                "status" => 1,
+                "status" => true,
                 "token" => $token,
                 "url" => $api_url
         );
@@ -360,7 +360,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $result = http_post($url, $body, $timeout, $content_type, $basic_auth_user, $headers);
         if (is_null($result)) {
             $this->emError("Problem with API call to " . $url . " for project $pid");
-            return array("status" => 0,
+            return array("status" => false,
                 "message" => "* Could not verify MRN. Please contact REDCap team for help");
         } else {
             $returnData = json_decode($result, true);
@@ -368,7 +368,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         }
 
         return array(
-                "status" => 1,
+                "status" => true,
                 "person" => $personInfo
                     );
     }
