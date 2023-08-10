@@ -47,9 +47,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
 
         // Find the URL to the MRN Verifier
         $url = $this->getUrl("VerifyMRNandCreateRecord.php");
-        $this->emDebug("This is the URL: " . $url);
         $allow_blank_mrn = $this->getProjectSetting('allow_blank_mrns');
-        $this->emDebug("Allow Blank MRNS: " . $allow_blank_mrn);
 
         // Retrieve the html that will create the modal and overwrite the Add new record button
         $modal = $this->createHTMLModal();

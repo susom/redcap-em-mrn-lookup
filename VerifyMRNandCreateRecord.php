@@ -14,7 +14,7 @@ $user = USERID;
 if ($action === "verify") {
 
     // Log who is asking for the request
-    $module->emDebug("User $user is requesting MRN LookUp for patient MRN $mrn for project $pid");
+    // $module->emDebug("User $user is requesting MRN LookUp for patient MRN $mrn for project $pid");
 
     // Find the name of the record id field
     $recordFieldName = REDCap::getRecordIdField();
@@ -37,7 +37,7 @@ if ($action === "verify") {
         }
 
         // Go to the record page
-        $module->emDebug("Found mrn $mrn in record $record_string for project $pid");
+        // $module->emDebug("Found mrn $mrn in record $record_string for project $pid");
         $record_home = $_SERVER["HTTP_ORIGIN"] . APP_PATH_WEBROOT . '/DataEntry/record_home.php?pid=' . $pid . '&id=' . $record_string;
 
         print json_encode(array(
@@ -81,10 +81,10 @@ if ($action === "verify") {
                 "To cancel, select the 'Cancel' button";
             print json_encode(array("status" => 3,
                 "message" => $message));
-            $module->emDebug("For user $user, mrn $mrn is invalid for project $pid. User will be asked to create record anyways.");
+            // $module->emDebug("For user $user, mrn $mrn is invalid for project $pid. User will be asked to create record anyways.");
         } else {
             $message = "* MRN is invalid";
-            $module->emDebug("For user $user, mrn $mrn is invalid for project $pid");
+            // $module->emDebug("For user $user, mrn $mrn is invalid for project $pid");
             print json_encode(array("status" => 0,
                 "message" => $message));
         }
@@ -163,16 +163,16 @@ if ($action === "verify") {
 
     // Save the new record
     $return = REDCap::saveData($pid, 'json', json_encode(array($newRecordID => $newMRNRecord)));
-    $module->emDebug("Return from creating new record $newRecordID: " . json_encode($return));
+    // $module->emDebug("Return from creating new record $newRecordID: " . json_encode($return));
 
     // Put together the URL to the new record
     $record_home = $_SERVER["HTTP_ORIGIN"] . APP_PATH_WEBROOT . '/DataEntry/record_home.php?pid=' .$pid . '&id=' . $newRecordID;
     if (!empty($return["errors"])) {
-        $module->emDebug("Error creating new record $newRecordID for mrn $mrn in project $pid");
+        // $module->emDebug("Error creating new record $newRecordID for mrn $mrn in project $pid");
         print json_encode(array("status"    => 0,
                                 "message"   => '* Problem saving new record. Please contact REDCap team'));
     } else {
-        $module->emDebug("Successfully created new record $newRecordID for mrn $mrn in project $pid");
+        // $module->emDebug("Successfully created new record $newRecordID for mrn $mrn in project $pid");
         print json_encode(array("status"    => 1,
                                 "url"       =>  $record_home));
     }
@@ -193,11 +193,11 @@ return;
 function findNextRecordNumber($record_prefix, $number_padding_size, $recordFieldName) {
     global $module, $pid;
 
-    $module->emDebug("Record prefix $record_prefix, num padding size $number_padding_size, record Field Name $recordFieldName");
+    // $module->emDebug("Record prefix $record_prefix, num padding size $number_padding_size, record Field Name $recordFieldName");
     $filter = "starts_with([" . $recordFieldName . "],'" .$record_prefix . "')";
     $record_field_array = array($recordFieldName);
     $recordIDs = REDCap::getData($pid, 'array', null, $record_field_array, null, null, null, null, null, $filter);
-    $module->emDebug("Record ids: " . json_encode($recordIDs));
+    // $module->emDebug("Record ids: " . json_encode($recordIDs));
 
     // Get the part of the record name after the prefix.  Changing to uppercase in case someone hand enters a record
     // and uses the same prefix with different case.
@@ -209,17 +209,17 @@ function findNextRecordNumber($record_prefix, $number_padding_size, $recordField
         }
     }
 
-    $module->emDebug("Records with same prefix: " . json_encode($record_array_noprefix));
+    // $module->emDebug("Records with same prefix: " . json_encode($record_array_noprefix));
     // Retrieve the max value so we can add one to create the new record label
     $highest_record_number = (empty($record_array_noprefix) ? 0 : max($record_array_noprefix));
-    $module->emDebug("Highest record_number: " . $highest_record_number);
+    // $module->emDebug("Highest record_number: " . $highest_record_number);
     if (!empty($number_padding_size)) {
         $numeric_part = str_pad(($highest_record_number + 1), $number_padding_size, '0', STR_PAD_LEFT);
     } else {
         $numeric_part = ($highest_record_number + 1);
     }
     $newRecordLabel = $record_prefix . $numeric_part;
-    $module->emDebug("New record label: " . $newRecordLabel);
+    // $module->emDebug("New record label: " . $newRecordLabel);
 
     return $newRecordLabel;
 }
