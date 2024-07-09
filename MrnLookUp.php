@@ -97,9 +97,9 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                     document.getElementById('messages').style.color = 'red';
                     document.getElementById('messages').innerHTML = '* Select Save to create a new record with a blank MRN';
                     document.getElementById('savebuttonid').style.display = 'inline';
-                } else if (newMRN.length !== 8) {
+                } else if (newMRN.length > 10 || newMRN.length < 7) {
                     document.getElementById('messages').style.color = 'red';
-                    document.getElementById('messages').innerHTML = "* MRN must be exactly 8 numbers";
+                    document.getElementById('messages').innerHTML = "* MRN can only be 7-10 numbers";
                     return;
                 } else if (isNaN(newMRN)) {
                     document.getElementById('messages').style.color = 'red';
