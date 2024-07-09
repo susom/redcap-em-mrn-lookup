@@ -231,7 +231,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
         $modal .= '            <div class="modal-body text-left">';
         $modal .= '                <div id="demographics" style="display:none"></div>';
         $modal .= '                <div style="margin:20px 0 0 0;font-weight:bold;" > ';
-        $modal .= '                     Enter an 8 character MRN (no dashes): ';
+        $modal .= '                     Enter an 8-10 character MRN (no dashes): ';
         $modal .= '                    <input id="newMRN" size="10px">';
         $modal .= '                     <input style="left-margin:10px" type="submit" onclick="verifyMRN()" value="Verify MRN">';
         $modal .= '                </div>';
