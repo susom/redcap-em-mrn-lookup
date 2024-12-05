@@ -127,7 +127,7 @@ class MrnLookUp extends \ExternalModules\AbstractExternalModule
                             // Status = 1 - MRN already in project - go to that record
                             // Status = 2 - Found MRN, display demographics
                             // Status = 3 - MRN not found but ask if they want to create a record anyways
-                            if (data_array.status === 0) {
+                            if (data_array.status === 0 || data_array.status === false) {
                                 document.getElementById('messages').style.color = 'red';
                                 document.getElementById('messages').innerHTML = data_array.message;
                             } else if (data_array.status === 1) {
